@@ -19,9 +19,14 @@ MCUFRIEND_kbv tft;
 #define Motor2Speed 46
 #define Motor2Direction 23
 
+int Motor1 = 0;
+int Motor2 = 0;
+boolean Motor1Richtung = false;
+boolean Motor2Richtung = false;
+//False = Vorwärts
 void setup()
 {
-    Serial.begin(9600);
+    Serial.begin(115200);
     uint16_t ID = tft.readID();
 
     Serial.print(F("ID = 0x"));
@@ -58,27 +63,51 @@ void loop(void)
     tft.setCursor(0,0);
     digitalWrite(Motor1Direction, LOW);
     digitalWrite(Motor2Direction, HIGH);
+    Motor1Richtung=false;
+    Motor2Richtung=true;
     for (int pwmwert=0; pwmwert<=255; pwmwert++){
       analogWrite(Motor1Speed, pwmwert);
       analogWrite(Motor2Speed, pwmwert);
+      Motor1 = pwmwert;
+      Motor2 = pwmwert;
       delay(5);
     }
     for (int pwmwert=255; pwmwert>=0; pwmwert--){
       analogWrite(Motor1Speed, pwmwert);
       analogWrite(Motor2Speed, pwmwert);
+      Motor1 = pwmwert;
+      Motor2 = pwmwert;
       delay(5);
     }
     digitalWrite(Motor1Direction, HIGH);
     digitalWrite(Motor2Direction, LOW);
+    Motor1Richtung=true;
+    Motor2Richtung=false;
     for (int pwmwert=0; pwmwert<=255; pwmwert++){
       analogWrite(Motor1Speed, pwmwert);
       analogWrite(Motor2Speed, pwmwert);
+      Motor1 = pwmwert;
+      Motor2 = pwmwert;
       delay(5);
     }
     for (int pwmwert=255; pwmwert>=0; pwmwert--){
       analogWrite(Motor1Speed, pwmwert);
       analogWrite(Motor2Speed, pwmwert);
+      Motor1 = pwmwert;
+      Motor2 = pwmwert;
+      //tft.fillRect(0,65,320,480,BLACK);
+      tft.setTextSize(3);
+      tft.setCursor(0,100);
+      //tft.fillCircle(50, 100, 40, YELLOW);
+      tft.setTextColor(CYAN, BLACK);
+      tft.println("Motor 1:");
+      tft.setTextSize(2);
+      tft.setTextColor(MAGENTA, BLACK);
+      tft.print("- ");
+      tft.print(Motor1/2.55);
+      tft.print("%  ");
       delay(5);
     }
+
     //delay(5000);
 }
