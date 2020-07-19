@@ -14,6 +14,11 @@ MCUFRIEND_kbv tft;
 #define GREY    0x8410
 #define ORANGE  0xE880
 
+#define Motor1Speed 45
+#define Motor1Direction 22
+#define Motor2Speed 46
+#define Motor2Direction 23
+
 void setup()
 {
     Serial.begin(9600);
@@ -21,6 +26,11 @@ void setup()
 
     Serial.print(F("ID = 0x"));
     Serial.println(ID, HEX);
+
+    pinMode(Motor1Speed, OUTPUT);
+    pinMode(Motor1Direction, OUTPUT);
+    pinMode(Motor2Speed, OUTPUT);
+    pinMode(Motor2Direction, OUTPUT);
     
     tft.begin(ID);
     tft.setRotation(1);
@@ -46,6 +56,29 @@ void setup()
 void loop(void)
 {
     tft.setCursor(0,0);
-
-    delay(5000);
+    digitalWrite(Motor1Direction, LOW);
+    digitalWrite(Motor2Direction, HIGH);
+    for (int pwmwert=0; pwmwert<=255; pwmwert++){
+      analogWrite(Motor1Speed, pwmwert);
+      analogWrite(Motor2Speed, pwmwert);
+      delay(5);
+    }
+    for (int pwmwert=255; pwmwert>=0; pwmwert--){
+      analogWrite(Motor1Speed, pwmwert);
+      analogWrite(Motor2Speed, pwmwert);
+      delay(5);
+    }
+    digitalWrite(Motor1Direction, HIGH);
+    digitalWrite(Motor2Direction, LOW);
+    for (int pwmwert=0; pwmwert<=255; pwmwert++){
+      analogWrite(Motor1Speed, pwmwert);
+      analogWrite(Motor2Speed, pwmwert);
+      delay(5);
+    }
+    for (int pwmwert=255; pwmwert>=0; pwmwert--){
+      analogWrite(Motor1Speed, pwmwert);
+      analogWrite(Motor2Speed, pwmwert);
+      delay(5);
+    }
+    //delay(5000);
 }
