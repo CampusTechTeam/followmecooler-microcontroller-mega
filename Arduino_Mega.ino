@@ -59,7 +59,7 @@ void setup()
   tft.print("Motor 1:");
 
   tft.setTextSize(3);
-  tft.setCursor(0, 150);
+  tft.setCursor(0, 175);
   tft.setTextColor(CYAN, BLACK);
   tft.print("Motor 2:");
 }
@@ -68,10 +68,6 @@ void setup()
 
 void loop(void)
 {
-  digitalWrite(Motor1Direction, LOW);
-  digitalWrite(Motor2Direction, HIGH);
-  Motor1Richtung = false;
-  Motor2Richtung = true;
   handleSerial();
 
   //tft.fillRect(0,65,320,480,BLACK);
@@ -82,10 +78,24 @@ void loop(void)
   tft.print("- ");
   tft.print(Motor1 / 2.55);
   tft.println("%  ");
-  tft.setCursor(0, 180);
+  tft.print("- ");
+  if(Motor1Richtung==false){
+    tft.print("Forward ");
+  }
+  else {
+    tft.print("Backward");
+  }
+  tft.setCursor(0, 200);
   tft.print("- ");
   tft.print(Motor2 / 2.55);
   tft.println("%  ");
+  tft.print("- ");
+  if(Motor2Richtung==false){
+    tft.print("Forward ");
+  }
+  else {
+    tft.print("Backward");
+  }
 
 
 }
@@ -94,27 +104,67 @@ void handleSerial() {
   while (Serial.available() >= 2) {
     switch (Serial.read()) {
       case 'W':
-        Serial.println("Sent: W");
         switch (Serial.read()) {
           case 'M':
-           Serial.println("Sent: WM");
-           switch (Serial.read()) {
+            switch (Serial.read()) {
+              case '1':
+                Motor1 = (Serial.readString()).toInt();
+                analogWrite(Motor1Speed, Motor1);
+                Serial.print("Wrote ");
+                Serial.print(Motor1);
+                Serial.println(" to Motor 1");
+                break;
+
+              case '2':
+                Motor2 = (Serial.readString()).toInt();
+                analogWrite(Motor2Speed, Motor2);
+                Serial.print("Wrote ");
+                Serial.print(Motor2);
+                Serial.println(" to Motor 2");
+                break;
+            }
+            break;
+        }
+        break;
+      case 'C':
+        switch (Serial.read()) {
+          case 'M':
+          switch (Serial.read()){
             case '1':
-            Serial.println("Sent: WM1");
-            Motor1 = (Serial.readString()).toInt();
-            analogWrite(Motor1Speed, Motor1);
+            switch (Serial.read()){
+              case 'F':
+              Motor1Richtung = false;
+              digitalWrite(Motor1Direction, LOW);
+              Serial.println("Changed Motor 1 to Forward");
+              break;
+
+              case 'B':
+              Motor1Richtung = true;
+              digitalWrite(Motor1Direction, HIGH);
+              Serial.println("Changed Motor 1 to Backward");
+              break;
+            }
             break;
 
             case '2':
-            Serial.println("Sent: WM2");
-            Motor2 = (Serial.readString()).toInt();
-            analogWrite(Motor2Speed, Motor2);
+            switch (Serial.read()){
+              case 'F':
+              Motor2Richtung = false;
+              digitalWrite(Motor2Direction, LOW);
+              Serial.println("Changed Motor 2 to Forward");
+              break;
+
+              case 'B':
+              Motor2Richtung = true;
+              digitalWrite(Motor2Direction, HIGH);
+              Serial.println("Changed Motor 2 to Backward");
+              break;
+            }
             break;
-           }
+          }
           break;
         }
         break;
-
       case 'R':
         Serial.println("Sent: R");
 
