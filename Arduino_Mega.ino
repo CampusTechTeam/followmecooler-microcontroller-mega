@@ -39,6 +39,8 @@ void setup()
   pinMode(Motor2Direction, OUTPUT);
   pinMode(37, INPUT);
   pinMode(35, OUTPUT);
+  pinMode(31, INPUT);
+  pinMode(33, OUTPUT);
 
   tft.begin(ID);
   tft.setRotation(1);
@@ -99,7 +101,10 @@ void loop()
   else {
     tft.print("Backward");
   }
-  Serial.println(getAVGDistance());
+  Serial.print("CM1: ");
+  Serial.println(getAVGDistance(35, 37));
+  Serial.print("CM2: ");
+  Serial.println(getAVGDistance(33, 31));
 
 
 }
@@ -179,40 +184,40 @@ void handleSerial() {
   }
 }
 
-int getDistance(int trigger, int echo){
- long distance=0;
- long timect=0;
+int getDistance(int trigger, int echo) {
+  long distance = 0;
+  long timect = 0;
 
- digitalWrite(trigger, LOW); 
- delayMicroseconds(3);
- noInterrupts();
- digitalWrite(trigger, HIGH); //Trigger Impuls 10 us
- delayMicroseconds(10);
- digitalWrite(trigger, LOW); 
- timect = pulseIn(echo, HIGH, 50000); // Echo-Zeit messen
- interrupts(); 
- 
- timect = (timect/2); // Zeit halbieren
- distance = timect / 29.1; // Zeit in Zentimeter umrechnen
- return(distance); 
+  digitalWrite(trigger, LOW);
+  delayMicroseconds(3);
+  noInterrupts();
+  digitalWrite(trigger, HIGH); //Trigger Impuls 10 us
+  delayMicroseconds(10);
+  digitalWrite(trigger, LOW);
+  timect = pulseIn(echo, HIGH, 50000); // Echo-Zeit messen
+  interrupts();
+
+  timect = (timect / 2); // Zeit halbieren
+  distance = timect / 29.1; // Zeit in Zentimeter umrechnen
+  return (distance);
 }
 
-int getAVGDistance(){ 
+int getAVGDistance(int trigger, int echo) {
 
-int old=0;
-int avg;
-int distance;
-int counter;
+  int old = 0;
+  int avg;
+  int distance;
+  int counter;
 
- delay(10);
- old=getDistance(35,37);
- delay(10);
- for (counter=0; counter<10; counter++)
- {
-   distance=getDistance(35,37);
-   avg=(0.8*old) + (0.2*distance);
-   old=distance;
-   delay(10);
- }
- return (avg);
+  delay(10);
+  old = getDistance(trigger, echo);
+  delay(10);
+  for (counter = 0; counter < 10; counter++)
+  {
+    distance = getDistance(trigger, echo);
+    avg = (0.8 * old) + (0.2 * distance);
+    old = distance;
+    delay(10);
+  }
+  return (avg);
 }
