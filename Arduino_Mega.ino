@@ -23,6 +23,7 @@ int Motor1 = 0;
 int Motor2 = 0;
 boolean Motor1Richtung = false;
 boolean Motor2Richtung = false;
+boolean updatestate = true;
 //False = Vorwärts
 void setup()
 {
@@ -101,10 +102,21 @@ void loop()
   else {
     tft.print("Backward");
   }
-  Serial.print("CM1: ");
-  Serial.println(getAVGDistance(35, 37));
-  Serial.print("CM2: ");
-  Serial.println(getAVGDistance(33, 31));
+  int Ultrasonic1 = getAVGDistance(35, 37);
+  int Ultrasonic2 = getAVGDistance(33, 31);
+  Serial.print("WU1");
+  Serial.println(Ultrasonic1);
+  Serial.print("WU2");
+  Serial.println(Ultrasonic2);
+
+  if(updatestate==true){
+    updatestate=false;
+    tft.fillRect(470,310,480,320,BLACK);
+  }
+  else {
+    updatestate=true;
+    tft.fillRect(470,310,480,320,YELLOW);    
+  }
 
 
 }
@@ -190,12 +202,12 @@ int getDistance(int trigger, int echo) {
 
   digitalWrite(trigger, LOW);
   delayMicroseconds(3);
-  noInterrupts();
+  //noInterrupts();
   digitalWrite(trigger, HIGH); //Trigger Impuls 10 us
   delayMicroseconds(10);
   digitalWrite(trigger, LOW);
   timect = pulseIn(echo, HIGH, 50000); // Echo-Zeit messen
-  interrupts();
+  //interrupts();
 
   timect = (timect / 2); // Zeit halbieren
   distance = timect / 29.1; // Zeit in Zentimeter umrechnen
