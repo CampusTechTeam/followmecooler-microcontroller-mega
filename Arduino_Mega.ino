@@ -15,9 +15,9 @@ MCUFRIEND_kbv tft;
 #define ORANGE  0xE880
 
 #define Motor1Speed 45
-#define Motor1Direction 22
+#define Motor1Direction 23
 #define Motor2Speed 46
-#define Motor2Direction 23
+#define Motor2Direction 22
 
 int Motor1 = 0;
 int Motor2 = 0;
