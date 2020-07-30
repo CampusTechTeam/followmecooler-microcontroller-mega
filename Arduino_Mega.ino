@@ -21,8 +21,11 @@ MCUFRIEND_kbv tft;
 #define Motor2Direction 22
 
 int Motor1 = 0;
+int Motor1vh = -1;
 int Motor2 = 0;
-int tftcounter = 5;
+int Motor2vh = -1;
+boolean Motor1Richtungvh = true;
+boolean Motor2Richtungvh = true;
 boolean Motor1Richtung = false;
 boolean Motor2Richtung = false;
 boolean updatestate = true;
@@ -79,14 +82,18 @@ void loop()
 {
   handleSerial();
   //tft.fillRect(0,65,320,480,BLACK);
-  if (tftcounter >= 5) {
-    tftcounter = 0;
-    tft.setTextSize(2);
-    tft.setTextColor(MAGENTA, BLACK);
+  tft.setTextSize(2);
+  tft.setTextColor(MAGENTA, BLACK);
+  if (Motor1 != Motor1vh) {
+    Motor1vh = Motor1;
     tft.setCursor(0, 154);
     tft.print("- ");
     tft.print(Motor1 / 2.55);
     tft.println("%  ");
+  }
+  if (Motor1Richtung != Motor1Richtungvh) {
+    Motor1Richtungvh = Motor1Richtung;
+    tft.setCursor(0, 174);
     tft.print("- ");
     if (Motor1Richtung == false) {
       tft.print("Forward ");
@@ -94,12 +101,17 @@ void loop()
     else {
       tft.print("Backward");
     }
-    tft.setTextSize(2);
-    tft.setTextColor(MAGENTA, BLACK);
+  }
+  if (Motor2 != Motor2vh) {
+    Motor2vh = Motor2;
     tft.setCursor(0, 240);
     tft.print("- ");
     tft.print(Motor2 / 2.55);
     tft.println("%  ");
+  }
+  if (Motor2Richtung != Motor2Richtungvh) {
+    Motor2Richtungvh = Motor2Richtung;
+    tft.setCursor(0, 260);
     tft.print("- ");
     if (Motor2Richtung == false) {
       tft.print("Forward ");
@@ -107,16 +119,16 @@ void loop()
     else {
       tft.print("Backward");
     }
-    if (updatestate == true) {
-      updatestate = false;
-      tft.fillRect(310, 470, 320, 480, YELLOW);
-    }
-    else {
-      updatestate = true;
-      tft.fillRect(310, 470, 320, 480, BLACK);
-    }
   }
-  tftcounter++;
+  if (updatestate == true) {
+    updatestate = false;
+    tft.fillRect(310, 470, 320, 480, YELLOW);
+  }
+  else {
+    updatestate = true;
+    tft.fillRect(310, 470, 320, 480, BLACK);
+  }
+
   int Ultrasonic1 = getAVGDistance(35, 37);
   int Ultrasonic2 = getAVGDistance(33, 31);
   Serial.print("WU1");
