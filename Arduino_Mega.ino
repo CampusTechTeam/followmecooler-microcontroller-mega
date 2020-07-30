@@ -1,7 +1,8 @@
 #include "MCUFRIEND_kbv.h"
 MCUFRIEND_kbv tft;
 
-#include "bitmap_RGB.h"
+#include "cttlogo.h"
+#include "fmclogo.h"
 
 #define BLACK   0x0000
 #define BLUE    0x001F
@@ -21,6 +22,7 @@ MCUFRIEND_kbv tft;
 
 int Motor1 = 0;
 int Motor2 = 0;
+int tftcounter = 5;
 boolean Motor1Richtung = false;
 boolean Motor2Richtung = false;
 boolean updatestate = true;
@@ -44,28 +46,29 @@ void setup()
   pinMode(33, OUTPUT);
 
   tft.begin(ID);
-  tft.setRotation(1);
   tft.fillScreen(BLACK);
-  int x = 0; int x2 = 416;
-  int y = 5; int y2 = 5;
+  int x = 0; int x2 = 256; int x3 = 128;
+  int y = 5; int y2 = 5; int y3 = 0;
   tft.setAddrWindow(x, y, x + 64 - 1, y + 64 - 1);
-  tft.pushColors((const uint8_t*)ctt_64x64, 64 * 64, 1, false);
-  tft.setAddrWindow(0, 0, tft.width() - 1, tft.height() - 1);
+  tft.pushColors((const uint8_t*)cttlogo_64x64, 64 * 64, 1, false);
   tft.setAddrWindow(x2, y2, x2 + 64 - 1, y2 + 64 - 1);
-  tft.pushColors((const uint8_t*)ctt_64x64, 64 * 64, 1, false);
+  tft.pushColors((const uint8_t*)cttlogo_64x64, 64 * 64, 1, false);
+  tft.setAddrWindow(x3, y3, x3 + 64 - 1, y3 + 85 - 1);
+  tft.pushColors((const uint8_t*)fmclogo_64x85, 64 * 85, 1, false);
   tft.setAddrWindow(0, 0, tft.width() - 1, tft.height() - 1);
   tft.setTextColor(BLUE);
-  tft.setTextSize(4);
-  tft.setCursor(75, 5);
+  tft.setTextSize(3);
+  tft.setCursor(28, 100);
   tft.print("FollowMeCooler");
+  //18.8px/Letter
 
   tft.setTextSize(3);
-  tft.setCursor(0, 100);
+  tft.setCursor(0, 130);
   tft.setTextColor(CYAN, BLACK);
   tft.print("Motor 1:");
 
   tft.setTextSize(3);
-  tft.setCursor(0, 175);
+  tft.setCursor(0, 215);
   tft.setTextColor(CYAN, BLACK);
   tft.print("Motor 2:");
 }
@@ -76,47 +79,50 @@ void loop()
 {
   handleSerial();
   //tft.fillRect(0,65,320,480,BLACK);
-  tft.setTextSize(2);
-  tft.setTextColor(MAGENTA, BLACK);
-  tft.setCursor(0, 130);
-  tft.print("- ");
-  tft.print(Motor1 / 2.55);
-  tft.println("%  ");
-  tft.print("- ");
-  if (Motor1Richtung == false) {
-    tft.print("Forward ");
+  if (tftcounter >= 5) {
+    tftcounter = 0;
+    tft.setTextSize(2);
+    tft.setTextColor(MAGENTA, BLACK);
+    tft.setCursor(0, 154);
+    tft.print("- ");
+    tft.print(Motor1 / 2.55);
+    tft.println("%  ");
+    tft.print("- ");
+    if (Motor1Richtung == false) {
+      tft.print("Forward ");
+    }
+    else {
+      tft.print("Backward");
+    }
+    tft.setTextSize(2);
+    tft.setTextColor(MAGENTA, BLACK);
+    tft.setCursor(0, 240);
+    tft.print("- ");
+    tft.print(Motor2 / 2.55);
+    tft.println("%  ");
+    tft.print("- ");
+    if (Motor2Richtung == false) {
+      tft.print("Forward ");
+    }
+    else {
+      tft.print("Backward");
+    }
+    if (updatestate == true) {
+      updatestate = false;
+      tft.fillRect(310, 470, 320, 480, YELLOW);
+    }
+    else {
+      updatestate = true;
+      tft.fillRect(310, 470, 320, 480, BLACK);
+    }
   }
-  else {
-    tft.print("Backward");
-  }
-  tft.setTextSize(2);
-  tft.setTextColor(MAGENTA, BLACK);
-  tft.setCursor(0, 200);
-  tft.print("- ");
-  tft.print(Motor2 / 2.55);
-  tft.println("%  ");
-  tft.print("- ");
-  if (Motor2Richtung == false) {
-    tft.print("Forward ");
-  }
-  else {
-    tft.print("Backward");
-  }
+  tftcounter++;
   int Ultrasonic1 = getAVGDistance(35, 37);
   int Ultrasonic2 = getAVGDistance(33, 31);
   Serial.print("WU1");
   Serial.println(Ultrasonic1);
   Serial.print("WU2");
   Serial.println(Ultrasonic2);
-
-  if(updatestate==true){
-    updatestate=false;
-    tft.fillRect(470,310,480,320,BLACK);
-  }
-  else {
-    updatestate=true;
-    tft.fillRect(470,310,480,320,YELLOW);    
-  }
 
 
 }
@@ -131,19 +137,17 @@ void handleSerial() {
               case '1':
                 Motor1 = (Serial.readString()).toInt();
                 analogWrite(Motor1Speed, Motor1);
-                Serial.print("Wrote ");
-                Serial.print(Motor1);
-                Serial.println(" to Motor 1");
+                //Serial.print("Wrote ");
+                //Serial.print(Motor1);
+                //Serial.println(" to Motor 1");
                 break;
 
               case '2':
-                Serial.println("Start");
                 Motor2 = (Serial.readString()).toInt();
-                Serial.println("End");
                 analogWrite(Motor2Speed, Motor2);
-                Serial.print("Wrote ");
-                Serial.print(Motor2);
-                Serial.println(" to Motor 2");
+                //Serial.print("Wrote ");
+                //Serial.print(Motor2);
+                //Serial.println(" to Motor 2");
                 break;
             }
             break;
@@ -158,13 +162,13 @@ void handleSerial() {
                   case 'F':
                     Motor1Richtung = false;
                     digitalWrite(Motor1Direction, LOW);
-                    Serial.println("Changed Motor 1 to Forward");
+                    //Serial.println("Changed Motor 1 to Forward");
                     break;
 
                   case 'B':
                     Motor1Richtung = true;
                     digitalWrite(Motor1Direction, HIGH);
-                    Serial.println("Changed Motor 1 to Backward");
+                    //Serial.println("Changed Motor 1 to Backward");
                     break;
                 }
                 break;
@@ -174,13 +178,13 @@ void handleSerial() {
                   case 'F':
                     Motor2Richtung = false;
                     digitalWrite(Motor2Direction, LOW);
-                    Serial.println("Changed Motor 2 to Forward");
+                    //Serial.println("Changed Motor 2 to Forward");
                     break;
 
                   case 'B':
                     Motor2Richtung = true;
                     digitalWrite(Motor2Direction, HIGH);
-                    Serial.println("Changed Motor 2 to Backward");
+                    //Serial.println("Changed Motor 2 to Backward");
                     break;
                 }
                 break;
