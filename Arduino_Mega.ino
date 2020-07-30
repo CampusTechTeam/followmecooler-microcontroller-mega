@@ -20,6 +20,8 @@ MCUFRIEND_kbv tft;
 #define Motor2Speed 46
 #define Motor2Direction 22
 
+#define SERIAL_BUFFER_SIZE 256
+
 int Motor1 = 0;
 int Motor1vh = -1;
 int Motor2 = 0;
@@ -32,7 +34,7 @@ boolean updatestate = true;
 //False = Vorwärts
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
   Serial.setTimeout(1);
   uint16_t ID = tft.readID();
 
@@ -80,7 +82,6 @@ void setup()
 
 void loop()
 {
-  handleSerial();
   //tft.fillRect(0,65,320,480,BLACK);
   tft.setTextSize(2);
   tft.setTextColor(MAGENTA, BLACK);
@@ -120,46 +121,51 @@ void loop()
       tft.print("Backward");
     }
   }
-  if (updatestate == true) {
+  /*if (updatestate == true) {
     updatestate = false;
     tft.fillRect(310, 470, 320, 480, YELLOW);
   }
   else {
     updatestate = true;
     tft.fillRect(310, 470, 320, 480, BLACK);
-  }
+  }*/
 
-  int Ultrasonic1 = getAVGDistance(35, 37);
+  /*int Ultrasonic1 = getAVGDistance(35, 37);
   int Ultrasonic2 = getAVGDistance(33, 31);
   Serial.print("WU1");
   Serial.println(Ultrasonic1);
   Serial.print("WU2");
-  Serial.println(Ultrasonic2);
+  Serial.println(Ultrasonic2);*/
 
 
 }
 
-void handleSerial() {
+void serialEvent() {
   while (Serial.available() > 0) {
+    Serial.println("Available");
     switch (Serial.read()) {
       case 'W':
+        delay(1);
         switch (Serial.read()) {
           case 'M':
+            delay(1);
             switch (Serial.read()) {
               case '1':
-                Motor1 = (Serial.readString()).toInt();
+                delay(5);
+                Motor1 = (Serial.readStringUntil("\n")).toInt();
                 analogWrite(Motor1Speed, Motor1);
-                //Serial.print("Wrote ");
-                //Serial.print(Motor1);
-                //Serial.println(" to Motor 1");
+                Serial.print("Wrote ");
+                Serial.print(Motor1);
+                Serial.println(" to Motor 1");
                 break;
 
               case '2':
-                Motor2 = (Serial.readString()).toInt();
+                delay(5);
+                Motor2 = (Serial.readStringUntil("\n")).toInt();
                 analogWrite(Motor2Speed, Motor2);
-                //Serial.print("Wrote ");
-                //Serial.print(Motor2);
-                //Serial.println(" to Motor 2");
+                Serial.print("Wrote ");
+                Serial.print(Motor2);
+                Serial.println(" to Motor 2");
                 break;
             }
             break;
