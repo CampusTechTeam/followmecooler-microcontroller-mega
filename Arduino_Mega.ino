@@ -15,10 +15,10 @@ MCUFRIEND_kbv tft;
 #define GREY    0x8410
 #define ORANGE  0xE880
 
-#define Motor1Speed 45
-#define Motor1Direction 23
-#define Motor2Speed 46
-#define Motor2Direction 22
+#define Motor1Speed 46
+#define Motor1Direction 22
+#define Motor2Speed 45
+#define Motor2Direction 23
 
 #define SERIAL_BUFFER_SIZE 256
 
@@ -154,29 +154,33 @@ void serialEvent() {
                 delay(5);
                 Motor1 = (Serial.readStringUntil("\n")).toInt();
                 analogWrite(Motor1Speed, Motor1);
-                Serial.print("Wrote ");
-                Serial.print(Motor1);
-                Serial.println(" to Motor 1");
+                //Serial.print("Wrote ");
+                //Serial.print(Motor1);
+                //Serial.println(" to Motor 1");
                 break;
 
               case '2':
                 delay(5);
                 Motor2 = (Serial.readStringUntil("\n")).toInt();
                 analogWrite(Motor2Speed, Motor2);
-                Serial.print("Wrote ");
-                Serial.print(Motor2);
-                Serial.println(" to Motor 2");
+                //Serial.print("Wrote ");
+                //Serial.print(Motor2);
+                //Serial.println(" to Motor 2");
                 break;
             }
             break;
         }
         break;
       case 'C':
+        delay(1);
         switch (Serial.read()) {
           case 'M':
+          delay(5);
             switch (Serial.read()) {
               case '1':
+              delay(5);
                 switch (Serial.read()) {
+                 
                   case 'F':
                     Motor1Richtung = false;
                     digitalWrite(Motor1Direction, LOW);
@@ -192,6 +196,7 @@ void serialEvent() {
                 break;
 
               case '2':
+              delay(5);
                 switch (Serial.read()) {
                   case 'F':
                     Motor2Richtung = false;
