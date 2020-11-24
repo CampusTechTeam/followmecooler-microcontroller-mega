@@ -1,8 +1,15 @@
+#include <SPI.h>
+#include <Ethernet.h>
+#include <PubSubClient.h>
 #include "MCUFRIEND_kbv.h"
 MCUFRIEND_kbv tft;
 
 #include "cttlogo.h"
 #include "fmclogo.h"
+
+byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
+IPAddress ip(192, 168, 2, 3);
+IPAddress server(192, 168, 2, 1);
 
 #define BLACK   0x0000
 #define BLUE    0x001F
@@ -32,6 +39,42 @@ boolean Motor1Richtung = false;
 boolean Motor2Richtung = false;
 boolean updatestate = true;
 //False = Vorwärts
+
+EthernetClient ethClient;
+PubSubClient client(ethClient);
+
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("arduinoClient")) {
+      Serial.println("connected");
+      // Once connected, publish an announcement...
+      client.publish("outTopic","hello world");
+      // ... and resubscribe
+      client.subscribe("inTopic");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+}
+
+
 void setup()
 {
   Serial.begin(9600);
@@ -76,12 +119,21 @@ void setup()
   tft.setCursor(0, 215);
   tft.setTextColor(CYAN, BLACK);
   tft.print("Motor 2:");
+  client.setServer(server, 1883);
+  client.setCallback(callback);
+  Ethernet.init(53);
+  Ethernet.begin(mac, ip);
+  delay(1500);
 }
 
 
 
 void loop()
 {
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
   //tft.fillRect(0,65,320,480,BLACK);
   tft.setTextSize(2);
   tft.setTextColor(MAGENTA, BLACK);
@@ -124,18 +176,18 @@ void loop()
   /*if (updatestate == true) {
     updatestate = false;
     tft.fillRect(310, 470, 320, 480, YELLOW);
-  }
-  else {
+    }
+    else {
     updatestate = true;
     tft.fillRect(310, 470, 320, 480, BLACK);
-  }*/
+    }*/
 
   /*int Ultrasonic1 = getAVGDistance(35, 37);
-  int Ultrasonic2 = getAVGDistance(33, 31);
-  Serial.print("WU1");
-  Serial.println(Ultrasonic1);
-  Serial.print("WU2");
-  Serial.println(Ultrasonic2);*/
+    int Ultrasonic2 = getAVGDistance(33, 31);
+    Serial.print("WU1");
+    Serial.println(Ultrasonic1);
+    Serial.print("WU2");
+    Serial.println(Ultrasonic2);*/
 
 
 }
@@ -175,12 +227,12 @@ void serialEvent() {
         delay(1);
         switch (Serial.read()) {
           case 'M':
-          delay(5);
+            delay(5);
             switch (Serial.read()) {
               case '1':
-              delay(5);
+                delay(5);
                 switch (Serial.read()) {
-                 
+
                   case 'F':
                     Motor1Richtung = false;
                     digitalWrite(Motor1Direction, LOW);
@@ -196,7 +248,7 @@ void serialEvent() {
                 break;
 
               case '2':
-              delay(5);
+                delay(5);
                 switch (Serial.read()) {
                   case 'F':
                     Motor2Richtung = false;
