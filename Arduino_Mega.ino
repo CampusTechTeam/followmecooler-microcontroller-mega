@@ -12,7 +12,7 @@ byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
 IPAddress ip(192, 168, 2, 3);
 IPAddress server(192, 168, 2, 1);
 
-CheapStepper stepper (31,33,35,37); 
+CheapStepper stepper (31, 33, 35, 37);
 
 #define BLACK   0x0000
 #define BLUE    0x001F
@@ -25,12 +25,26 @@ CheapStepper stepper (31,33,35,37);
 #define GREY    0x8410
 #define ORANGE  0xE880
 
-#define Motor1Speed 44
+#define Motor1Speed 45
 #define Motor1Direction 28
-#define Motor2Speed 45
+#define Motor2Speed 44
 #define Motor2Direction 40
+#define Motor1Hall 18
+#define Motor2Hall 19
 
 #define SERIAL_BUFFER_SIZE 256
+
+int rpminterval = 50;
+#define encoderturn 1401.55
+
+
+long previousMillis = 0;
+long currentMillis = 0;
+
+int Motor1RPM = 0;
+int Motor2RPM = 0;
+volatile long Motor1Encoder = 0;
+volatile long Motor2Encoder = 0;
 
 int Motor1 = 0;
 int Motor1vh = -1;
@@ -54,7 +68,7 @@ void reconnect() {
     if (client.connect("arduinoClient")) {
       Serial.println("connected");
       // Once connected, publish an announcement...
-      client.publish("followmecooler/status/megastate","1");
+      client.publish("followmecooler/status/megastate", "1");
       // ... and resubscribe
       client.subscribe("followmecooler/mega/Motor1/direction");
       client.subscribe("followmecooler/mega/Motor2/direction");
@@ -89,16 +103,20 @@ void setup()
 
   Serial.print(F("ID = 0x"));
   Serial.println(ID, HEX);
-  stepper.setRpm(16); 
+  stepper.setRpm(16);
 
   pinMode(Motor1Speed, OUTPUT);
   pinMode(Motor1Direction, OUTPUT);
   pinMode(Motor2Speed, OUTPUT);
   pinMode(Motor2Direction, OUTPUT);
+  pinMode(Motor1Hall, INPUT);
+  pinMode(Motor2Hall, INPUT);
   pinMode(37, INPUT);
   pinMode(35, OUTPUT);
   pinMode(31, INPUT);
   pinMode(33, OUTPUT);
+  attachInterrupt(digitalPinToInterrupt(Motor1Hall), updateEncoder1, RISING);
+  attachInterrupt(digitalPinToInterrupt(Motor2Hall), updateEncoder2, RISING);
 
   tft.begin(ID);
   tft.fillScreen(BLACK);
@@ -141,6 +159,20 @@ void loop()
     reconnect();
   }
   client.loop();
+
+  currentMillis = millis();
+  if (currentMillis - previousMillis > rpminterval) {
+    previousMillis = currentMillis;
+    Motor1RPM = (float)((Motor1Encoder * 1200 / encoderturn)+100);
+    Motor2RPM = (float)((Motor2Encoder * 1200 / encoderturn)+100);
+    Serial.print("Motor1RPM: ");
+    Serial.println(Motor1RPM);
+    Serial.print("Motor2RPM: ");
+    Serial.println(Motor2RPM);
+    Motor1Encoder = 0;
+    Motor2Encoder = 0;
+  }
+
   //tft.fillRect(0,65,320,480,BLACK);
   tft.setTextSize(2);
   tft.setTextColor(MAGENTA, BLACK);
@@ -318,4 +350,11 @@ int getAVGDistance(int trigger, int echo) {
     delay(10);
   }
   return (avg);
+}
+
+void updateEncoder1() {
+  Motor1Encoder++;
+}
+void updateEncoder2() {
+  Motor2Encoder++;
 }
