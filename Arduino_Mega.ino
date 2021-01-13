@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <PubSubClient.h>
+#include <CheapStepper.h>
 #include "MCUFRIEND_kbv.h"
 MCUFRIEND_kbv tft;
 
@@ -10,6 +11,8 @@ MCUFRIEND_kbv tft;
 byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
 IPAddress ip(192, 168, 2, 3);
 IPAddress server(192, 168, 2, 1);
+
+CheapStepper stepper (31,33,35,37); 
 
 #define BLACK   0x0000
 #define BLUE    0x001F
@@ -22,10 +25,10 @@ IPAddress server(192, 168, 2, 1);
 #define GREY    0x8410
 #define ORANGE  0xE880
 
-#define Motor1Speed 46
-#define Motor1Direction 22
+#define Motor1Speed 44
+#define Motor1Direction 28
 #define Motor2Speed 45
-#define Motor2Direction 23
+#define Motor2Direction 40
 
 #define SERIAL_BUFFER_SIZE 256
 
@@ -51,9 +54,12 @@ void reconnect() {
     if (client.connect("arduinoClient")) {
       Serial.println("connected");
       // Once connected, publish an announcement...
-      client.publish("outTopic","hello world");
+      client.publish("followmecooler/status/megastate","1");
       // ... and resubscribe
-      client.subscribe("inTopic");
+      client.subscribe("followmecooler/mega/Motor1/direction");
+      client.subscribe("followmecooler/mega/Motor2/direction");
+      client.subscribe("followmecooler/mega/Motor1/");
+      client.subscribe("followmecooler/mega/Motor2");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -83,6 +89,7 @@ void setup()
 
   Serial.print(F("ID = 0x"));
   Serial.println(ID, HEX);
+  stepper.setRpm(16); 
 
   pinMode(Motor1Speed, OUTPUT);
   pinMode(Motor1Direction, OUTPUT);
