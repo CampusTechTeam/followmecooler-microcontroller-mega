@@ -38,8 +38,9 @@ int rpminterval = 50;
 #define encoderturn 1401.55
 
 
-long previousMillis = 0;
-long currentMillis = 0;
+long rpmpreviousMillis = 0;
+long rpmcurrentMillis = 0;
+int rpmcounter=0;
 
 int Motor1RPM = 0;
 int Motor2RPM = 0;
@@ -160,17 +161,25 @@ void loop()
   }
   client.loop();
 
-  currentMillis = millis();
-  if (currentMillis - previousMillis > rpminterval) {
-    previousMillis = currentMillis;
-    Motor1RPM = (float)((Motor1Encoder * 1200 / encoderturn)+100);
-    Motor2RPM = (float)((Motor2Encoder * 1200 / encoderturn)+100);
+  rpmcurrentMillis = millis();
+  if (rpmcurrentMillis - rpmpreviousMillis > rpminterval) {
+    rpmpreviousMillis = rpmcurrentMillis;
+    Motor1RPM = (float)((Motor1Encoder * 2000 / encoderturn));
+    Motor2RPM = (float)((Motor2Encoder * 2000 / encoderturn));
     Serial.print("Motor1RPM: ");
     Serial.println(Motor1RPM);
     Serial.print("Motor2RPM: ");
     Serial.println(Motor2RPM);
     Motor1Encoder = 0;
     Motor2Encoder = 0;
+    if(rpmcounter==1){
+      rpmcounter=0;
+      client.publish("followmecooler/mega/Motor1RPM", Motor1RPM);
+      client.publish("followmecooler/mega/Motor2RPM", Motor2RPM);
+    }
+    else {
+      rpmcounter++;
+    }
   }
 
   //tft.fillRect(0,65,320,480,BLACK);
