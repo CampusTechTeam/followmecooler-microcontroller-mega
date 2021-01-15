@@ -41,6 +41,7 @@ int rpminterval = 50;
 long rpmpreviousMillis = 0;
 long rpmcurrentMillis = 0;
 int rpmcounter = 0;
+int stallcounter = 0;
 
 float Motor1RPM = 0;
 float Motor2RPM = 0;
@@ -97,16 +98,20 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println("");
 
   if (String(topic) == "followmecooler/mega/Motor1" && payloadString.toInt() >= -230 && 230 >= payloadString.toInt()) {
-    Serial.println("Motor1 " + payloadString);
-    Motor1 = payloadString.toInt();
-    Motor1PWM = payloadString.toInt();
-    analogWrite(Motor1Speed, Motor1PWM);
+    if (payloadString.toInt() <= -15 || 15 <= payloadString.toInt()) {
+      Serial.println("Motor1 " + payloadString);
+      Motor1 = payloadString.toInt();
+      Motor1PWM = payloadString.toInt();
+      analogWrite(Motor1Speed, Motor1PWM);
+    }
   }
   if (String(topic) == "followmecooler/mega/Motor2" && payloadString.toInt() >= -230 && 230 >= payloadString.toInt()) {
-    Serial.println("Motor2 " + payloadString);
-    Motor2 = payloadString.toInt();
-    Motor2PWM = payloadString.toInt();
-    analogWrite(Motor2Speed, Motor2PWM);
+    if (payloadString.toInt() <= -15 || 15 <= payloadString.toInt()) {
+      Serial.println("Motor2 " + payloadString);
+      Motor2 = payloadString.toInt();
+      Motor2PWM = payloadString.toInt();
+      analogWrite(Motor2Speed, Motor2PWM);
+    }
   }
 
 }
@@ -172,7 +177,7 @@ void setup()
 
 void loop()
 {
-  if (!client.connected()) {
+  if (!client.connected() && stallcounter == 0) {
     reconnect();
   }
   client.loop();
@@ -188,29 +193,50 @@ void loop()
     char Motor2RPMchar[6];
     Motor1RPMString.toCharArray(Motor1RPMchar, 6);
     Motor2RPMString.toCharArray(Motor2RPMchar, 6);
-    if (Motor1RPM > Motor1 + 3 && Motor1 > 0) {
-      if (Motor1PWM - 3 > 0) {
-        Motor1PWM -= 3;
+    if (Motor1RPM > Motor1 + 5 && Motor1 > 0) {
+      if (Motor1PWM - 5 > 0) {
+        Motor1PWM -= 5;
       }
       analogWrite(Motor1Speed, Motor1PWM);
     }
-    if (Motor1RPM < Motor1 - 3 && Motor1 > 0) {
-      if (Motor1PWM + 3 < 255) {
-        Motor1PWM += 3;
+    if (Motor1RPM < Motor1 - 5 && Motor1 > 0) {
+      if (Motor1PWM + 5 < 255) {
+        Motor1PWM += 5;
       }
       analogWrite(Motor1Speed, Motor1PWM);
     }
-    if (Motor2RPM > Motor2 + 3 && Motor2 > 0) {
-      if (Motor2PWM - 3 > 0) {
-        Motor2PWM -= 3;
+    if (Motor2RPM > Motor2 + 5 && Motor2 > 0) {
+      if (Motor2PWM - 5 > 0) {
+        Motor2PWM -= 5;
       }
       analogWrite(Motor2Speed, Motor2PWM);
     }
-    if (Motor2RPM < Motor2 - 3 && Motor2 > 0) {
-      if (Motor2PWM + 3 < 255) {
-        Motor2PWM += 3;
+    if (Motor2RPM < Motor2 - 5 && Motor2 > 0) {
+      if (Motor2PWM + 5 < 255) {
+        Motor2PWM += 5;
       }
       analogWrite(Motor2Speed, Motor2PWM);
+    }
+    if (Motor1PWM - Motor1 >= 120) {
+      stallcounter++;
+      Serial.println("stall");
+    }
+    if (Motor2PWM - Motor2 >= 120) {
+      stallcounter++;
+      Serial.println("stall");
+    }
+    if (Motor1PWM - Motor1 <= 80 && Motor2PWM - Motor2 <= 80) {
+      stallcounter = 0;
+    }
+    if (stallcounter >= 20) {
+      analogWrite(Motor1Speed, 0);
+      analogWrite(Motor2Speed, 0);
+      Motor1 = 0;
+      Motor2 = 0;
+      Motor1PWM = 0;
+      Motor2PWM = 0;
+      Serial.println("STALL");
+      delay(1500);
     }
 
     /*Serial.print("Motor1RPM: ");
@@ -221,8 +247,15 @@ void loop()
     Motor2Encoder = 0;
     if (rpmcounter == 2) {
       rpmcounter = 0;
+      char Motor1PWMchar[3];
+      char Motor2PWMchar[3];
+      String(Motor1PWM).toCharArray(Motor1PWMchar, 3);
+      String(Motor2PWM).toCharArray(Motor2PWMchar, 3);
+
       client.publish("followmecooler/mega/Motor1RPM", Motor1RPMchar, true);
       client.publish("followmecooler/mega/Motor2RPM", Motor2RPMchar, true);
+      client.publish("followmecooler/mega/Motor1PWM", Motor1PWMchar, true);
+      client.publish("followmecooler/mega/Motor2PWM", Motor2PWMchar, true);
     }
     else {
       rpmcounter++;
