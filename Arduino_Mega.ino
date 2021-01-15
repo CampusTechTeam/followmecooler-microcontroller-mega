@@ -40,16 +40,18 @@ int rpminterval = 50;
 
 long rpmpreviousMillis = 0;
 long rpmcurrentMillis = 0;
-int rpmcounter=0;
+int rpmcounter = 0;
 
-int Motor1RPM = 0;
-int Motor2RPM = 0;
+float Motor1RPM = 0;
+float Motor2RPM = 0;
 volatile long Motor1Encoder = 0;
 volatile long Motor2Encoder = 0;
 
 int Motor1 = 0;
-int Motor1vh = -1;
 int Motor2 = 0;
+int Motor1PWM = 0;
+int Motor2PWM = 0;
+int Motor1vh = -1;
 int Motor2vh = -1;
 boolean Motor1Richtungvh = true;
 boolean Motor2Richtungvh = true;
@@ -71,9 +73,7 @@ void reconnect() {
       // Once connected, publish an announcement...
       client.publish("followmecooler/status/megastate", "1");
       // ... and resubscribe
-      client.subscribe("followmecooler/mega/Motor1/direction");
-      client.subscribe("followmecooler/mega/Motor2/direction");
-      client.subscribe("followmecooler/mega/Motor1/");
+      client.subscribe("followmecooler/mega/Motor1");
       client.subscribe("followmecooler/mega/Motor2");
     } else {
       Serial.print("failed, rc=");
@@ -88,11 +88,27 @@ void reconnect() {
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
-  Serial.print("] ");
+  Serial.print("]: ");
+  String payloadString = "";
   for (int i = 0; i < length; i++) {
     Serial.print((char)payload[i]);
+    payloadString += (char)payload[i];
   }
-  Serial.println();
+  Serial.println("");
+
+  if (String(topic) == "followmecooler/mega/Motor1" && payloadString.toInt() >= -230 && 230 >= payloadString.toInt()) {
+    Serial.println("Motor1 " + payloadString);
+    Motor1 = payloadString.toInt();
+    Motor1PWM = payloadString.toInt();
+    analogWrite(Motor1Speed, Motor1PWM);
+  }
+  if (String(topic) == "followmecooler/mega/Motor2" && payloadString.toInt() >= -230 && 230 >= payloadString.toInt()) {
+    Serial.println("Motor2 " + payloadString);
+    Motor2 = payloadString.toInt();
+    Motor2PWM = payloadString.toInt();
+    analogWrite(Motor2Speed, Motor2PWM);
+  }
+
 }
 
 
@@ -164,18 +180,49 @@ void loop()
   rpmcurrentMillis = millis();
   if (rpmcurrentMillis - rpmpreviousMillis > rpminterval) {
     rpmpreviousMillis = rpmcurrentMillis;
-    Motor1RPM = (float)((Motor1Encoder * 2000 / encoderturn));
-    Motor2RPM = (float)((Motor2Encoder * 2000 / encoderturn));
-    Serial.print("Motor1RPM: ");
-    Serial.println(Motor1RPM);
-    Serial.print("Motor2RPM: ");
-    Serial.println(Motor2RPM);
+    Motor1RPM = (float)((Motor1Encoder * 1980 / encoderturn));
+    Motor2RPM = (float)((Motor2Encoder * 1980 / encoderturn));
+    String Motor1RPMString = (String)((Motor1Encoder * 1950 / encoderturn));
+    String Motor2RPMString = (String)((Motor2Encoder * 1950 / encoderturn));
+    char Motor1RPMchar[6];
+    char Motor2RPMchar[6];
+    Motor1RPMString.toCharArray(Motor1RPMchar, 6);
+    Motor2RPMString.toCharArray(Motor2RPMchar, 6);
+    if (Motor1RPM > Motor1 + 3 && Motor1 > 0) {
+      if (Motor1PWM - 3 > 0) {
+        Motor1PWM -= 3;
+      }
+      analogWrite(Motor1Speed, Motor1PWM);
+    }
+    if (Motor1RPM < Motor1 - 3 && Motor1 > 0) {
+      if (Motor1PWM + 3 < 255) {
+        Motor1PWM += 3;
+      }
+      analogWrite(Motor1Speed, Motor1PWM);
+    }
+    if (Motor2RPM > Motor2 + 3 && Motor2 > 0) {
+      if (Motor2PWM - 3 > 0) {
+        Motor2PWM -= 3;
+      }
+      analogWrite(Motor2Speed, Motor2PWM);
+    }
+    if (Motor2RPM < Motor2 - 3 && Motor2 > 0) {
+      if (Motor2PWM + 3 < 255) {
+        Motor2PWM += 3;
+      }
+      analogWrite(Motor2Speed, Motor2PWM);
+    }
+
+    /*Serial.print("Motor1RPM: ");
+      Serial.println(Motor1RPM);
+      Serial.print("Motor2RPM: ");
+      Serial.println(Motor2RPM);*/
     Motor1Encoder = 0;
     Motor2Encoder = 0;
-    if(rpmcounter==1){
-      rpmcounter=0;
-      client.publish("followmecooler/mega/Motor1RPM", Motor1RPM);
-      client.publish("followmecooler/mega/Motor2RPM", Motor2RPM);
+    if (rpmcounter == 2) {
+      rpmcounter = 0;
+      client.publish("followmecooler/mega/Motor1RPM", Motor1RPMchar, true);
+      client.publish("followmecooler/mega/Motor2RPM", Motor2RPMchar, true);
     }
     else {
       rpmcounter++;
