@@ -50,6 +50,7 @@ volatile long Motor2Encoder = 0;
 
 boolean targetreached = true;
 boolean manual = false;
+boolean motorstate = false;
 int targetstate = 0;
 int degree = -1;
 int targetdegree = -1;
@@ -57,6 +58,8 @@ int Motor1 = 0;
 int Motor2 = 0;
 int Motor1PWM = 0;
 int Motor2PWM = 0;
+int Motor1Travel = 35;
+int Motor2Travel = 35;
 int Motor1vh = -1;
 int Motor2vh = -1;
 boolean Motor1Richtungvh = true;
@@ -84,9 +87,9 @@ void reconnect() {
       client.subscribe("followmecooler/mega/manual/");
       client.subscribe("followmecooler/mega/manual/Motor");
       client.subscribe("followmecooler/cooler/compass");
-      client.subscribe("followmecooler/jetson/depth/trackerstate");
-      client.subscribe("followmecooler/jetson/depth/trackerbb/x");
-      client.subscribe("followmecooler/jetson/depth/trackerbb/x");
+      client.subscribe("followmecooler/jetson/targetdegree");
+      client.subscribe("followmecooler/jetson/meandist");
+      client.subscribe("followmecooler/jetson/motorstate");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -145,66 +148,79 @@ void callback(char* topic, byte* payload, unsigned int length) {
       manual = false;
     }
   }
-  if (String(topic) == "followmecooler/jetson/depth/trackerstate" && manual == false) {
-    Serial.println("trackerstate");
-    if (payloadString.toInt() == 0) {
-      targetstate = 0;
-      Motor1 = 0;
-      Motor1PWM = Motor1;
-      analogWrite(Motor1Speed, Motor1PWM);
-      Motor2 = 0;
-      Motor2PWM = Motor2;
-      analogWrite(Motor2Speed, Motor2PWM);
+  if (String(topic) == "followmecooler/jetson/targetdegree" && manual == false && motorstate == true && degree!=-1) {
+    targetdegree = payloadString.toInt();
+    if(targetdegree+3<degree){
+      Serial.print("going left ");
+      Serial.print(targetdegree);
+      Serial.print("/");
+      Serial.println(degree);
+      float MotorOffset = degree-targetdegree;
+      if(MotorOffset*1.25 > 50){ MotorOffset=50/1.25; }
+      Motor1 = Motor1Travel-MotorOffset*0.62;
+      Motor2 = Motor2Travel+MotorOffset*1.25;
+      
     }
-    else {
-      if (targetstate == 0) {
-        Motor1 = 35;
-        Motor1PWM = Motor1;
-        analogWrite(Motor1Speed, Motor1PWM);
-        Motor2 = 35;
-        Motor2PWM = Motor2;
-        analogWrite(Motor2Speed, Motor2PWM);
+    if(targetdegree-3>degree){
+      Serial.print("going right ");
+      Serial.print(targetdegree);
+      Serial.print("/");
+      Serial.println(degree);
+      float MotorOffset = targetdegree-degree;
+      if(MotorOffset*1.25 > 50){ MotorOffset=50/1.25; }
+      Motor1 = Motor1Travel+MotorOffset*0.62;
+      Motor2 = Motor2Travel-MotorOffset*1.25;
+    }
+    if(targetdegree+3>=degree && targetdegree-3<=degree){
+      Serial.print("centered ");
+      Serial.print(targetdegree);
+      Serial.print("/");
+      Serial.println(degree);
+      if(Motor1!=Motor1Travel){
+        analogWrite(Motor1Speed, Motor1Travel);
+        Motor1PWM = Motor1Travel;
       }
-      targetstate = 1;
+      if(Motor2!=Motor2Travel){
+        analogWrite(Motor2Speed, Motor2Travel);
+        Motor2PWM = Motor2Travel;
+      }
+      Motor1 = Motor1Travel;
+      Motor2 = Motor2Travel;
     }
   }
+
+  if (String(topic) == "followmecooler/jetson/meandist") {
+    float meandist = payloadString.toFloat();
+    Motor1Travel = meandist*20;
+    Motor2Travel = meandist*20;
+    if(Motor1Travel>75){ Motor1Travel = 75; }
+    if(Motor2Travel>75){ Motor2Travel = 75; }
+  }
+
+  
   if (String(topic) == "followmecooler/cooler/compass") {
     degree = payloadString.toInt();
   }
-  if (String(topic) == "followmecooler/jetson/depth/trackerbb/x" && targetstate != 0 && targetreached == true && Motor1 != 0 && Motor2 != 0 && manual == false) {
-    if (payloadString.toInt() < 320) {
-      if (degree - (payloadString.toInt() / 15) > targetdegree + 3 || targetdegree - 3 > (degree - payloadString.toInt()) / 8) {
-        targetdegree = degree - (payloadString.toInt() / 15);
-        if (degree - (payloadString.toInt() / 15) < 0) {
-          targetdegree = 360 + (payloadString.toInt() / 15);
-        }
-        if (degree - (payloadString.toInt() / 15) > 360) {
-          targetdegree = (payloadString.toInt() / 15) - 360;
-        }
-        Serial.println(targetdegree);
-        targetreached = false;
-        Motor2 = 60;
-        Motor2PWM = Motor2;
-        analogWrite(Motor2Speed, Motor2PWM);
-        Motor1 = 25;
-        Motor1PWM = Motor1;
-        analogWrite(Motor1Speed, Motor1PWM);
-      }
-    }
-    else {
-      if (degree - (payloadString.toInt() / 15) > targetdegree + 3 || targetdegree - 3 > degree - (payloadString.toInt() / 15)) {
-        targetdegree = degree + ((payloadString.toInt() - 320) / 15);
-        Serial.println(targetdegree);
-        targetreached = false;
-        Motor1 = 60;
-        Motor1PWM = Motor1;
-        analogWrite(Motor1Speed, Motor1PWM);
-        Motor2 = 25;
-        Motor2PWM = Motor2;
-        analogWrite(Motor2Speed, Motor2PWM);
-      }
-    }
 
+  if (String(topic) == "followmecooler/jetson/motorstate") {
+    if(payloadString.toInt()==0){
+      motorstate=false;
+      Motor1 = 0;
+      Motor2 = 0;
+      Motor1PWM = 0;
+      Motor2PWM = 0;
+      analogWrite(Motor1Speed, 0);
+      analogWrite(Motor2Speed, 0);
+    }
+   if(payloadString.toInt()==1){
+      motorstate=true;
+      Motor1 = Motor1Travel;
+      Motor2 = Motor2Travel;
+      Motor1PWM = Motor1Travel;
+      Motor2PWM = Motor2Travel;
+      analogWrite(Motor1Speed, Motor1Travel);
+      analogWrite(Motor2Speed, Motor2Travel); 
+    }
   }
 }
 
@@ -317,7 +333,7 @@ void loop()
       stallcounter++;
       Serial.println("stall");
     }
-    if (Motor1RPM >= 50 && Motor1PWM < 100 && Motor2RPM >= 50 && Motor2PWM < 100) {
+    if (Motor1RPM >= 50 && Motor1PWM < 100 && Motor2RPM >= 50 && Motor2PWM < 100 && stallcounter==0) {
       stallcounter--;
     }
     if (stallcounter >= 18) {
@@ -339,17 +355,7 @@ void loop()
     Motor1Encoder = 0;
     Motor2Encoder = 0;
 
-    if (targetreached == false && targetstate != 0 && manual == false) {
-      if (targetdegree - 3 < degree && degree < targetdegree + 3) {
-        Motor1 = 45;
-        Motor1PWM = Motor1;
-        analogWrite(Motor1Speed, Motor1PWM);
-        Motor2 = 45;
-        Motor2PWM = Motor2;
-        analogWrite(Motor2Speed, Motor2PWM);
-        targetreached = true;
-      }
-    }
+    
 
 
     if (rpmcounter >= 3) {
@@ -376,12 +382,11 @@ void loop()
   //tft.fillRect(0,65,320,480,BLACK);
   tft.setTextSize(2);
   tft.setTextColor(MAGENTA, BLACK);
-  if (Motor1 != Motor1vh) {
-    Motor1vh = Motor1;
+  if (Motor1RPM != Motor1vh) {
+    Motor1vh = Motor1RPM;
     tft.setCursor(0, 154);
     tft.print("- ");
-    tft.print(Motor1 / 2.55);
-    tft.println("%  ");
+    tft.println(Motor1RPM);
   }
   if (Motor1Richtung != Motor1Richtungvh) {
     Motor1Richtungvh = Motor1Richtung;
