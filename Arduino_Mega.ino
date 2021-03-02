@@ -148,9 +148,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
       manual = false;
     }
   }
-  if (String(topic) == "followmecooler/jetson/targetdegree" && manual == false && motorstate == true && degree!=-1) {
+  if (String(topic) == "followmecooler/jetson/targetdegree" && manual == false && degree!=-1) {
     targetdegree = payloadString.toInt();
-    if(targetdegree+3<degree){
+    if(targetdegree+3<degree && motorstate == true){
       Serial.print("going left ");
       Serial.print(targetdegree);
       Serial.print("/");
@@ -161,7 +161,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       Motor2 = Motor2Travel+MotorOffset*1.25;
       
     }
-    if(targetdegree-3>degree){
+    if(targetdegree-3>degree && motorstate == true){
       Serial.print("going right ");
       Serial.print(targetdegree);
       Serial.print("/");
@@ -171,7 +171,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       Motor1 = Motor1Travel+MotorOffset*0.62;
       Motor2 = Motor2Travel-MotorOffset*1.25;
     }
-    if(targetdegree+3>=degree && targetdegree-3<=degree){
+    if(targetdegree+3>=degree && targetdegree-3<=degree && motorstate == true){
       Serial.print("centered ");
       Serial.print(targetdegree);
       Serial.print("/");
