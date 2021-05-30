@@ -9,7 +9,7 @@ MCUFRIEND_kbv tft;
 #include "fmclogo.h"
 
 byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
-IPAddress ip(192, 168, 2, 3);
+//IPAddress ip(192, 168, 2, 3);
 IPAddress server(192, 168, 2, 1);
 
 CheapStepper stepper (31, 33, 35, 37);
@@ -25,10 +25,10 @@ CheapStepper stepper (31, 33, 35, 37);
 #define GREY    0x8410
 #define ORANGE  0xE880
 
-#define Motor1Speed 45
-#define Motor1Direction 28
-#define Motor2Speed 44
-#define Motor2Direction 40
+#define Motor2Speed 45
+#define Motor2Direction 27
+#define Motor1Speed 44
+#define Motor1Direction 40
 #define Motor1Hall 18
 #define Motor2Hall 19
 
@@ -62,10 +62,8 @@ int Motor1Travel = 35;
 int Motor2Travel = 35;
 int Motor1vh = -1;
 int Motor2vh = -1;
-boolean Motor1Richtungvh = true;
-boolean Motor2Richtungvh = true;
-boolean Motor1Richtung = false;
-boolean Motor2Richtung = false;
+boolean Motor1Dir = false;
+boolean Motor2Dir = false;
 boolean updatestate = true;
 //False = Vorwärts
 
@@ -83,7 +81,7 @@ void reconnect() {
       client.publish("followmecooler/status/megastate", "1");
       // ... and resubscribe
       client.subscribe("followmecooler/mega/manual/Motor1");
-      client.subscribe("followmecooler/mega/manual/Motor1");
+      client.subscribe("followmecooler/mega/manual/Motor2");
       client.subscribe("followmecooler/mega/manual/");
       client.subscribe("followmecooler/mega/manual/Motor");
       client.subscribe("followmecooler/cooler/compass");
@@ -114,29 +112,79 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if (String(topic) == "followmecooler/mega/manual/Motor1" && payloadString.toInt() >= -230 && 230 >= payloadString.toInt() && manual == true) {
     if (payloadString.toInt() <= -15 || 15 <= payloadString.toInt() || 0 == payloadString.toInt()) {
       Serial.println("Motor1 " + payloadString);
-      Motor1 = payloadString.toInt();
-      Motor1PWM = payloadString.toInt();
-      analogWrite(Motor1Speed, Motor1PWM);
+      if (payloadString.toInt() < 0) {
+        Motor1Dir = true;
+        Motor1 = payloadString.toInt() * -1;
+        Motor1PWM = payloadString.toInt() * -1;
+        digitalWrite(Motor1Direction, HIGH);
+        analogWrite(Motor1Speed, Motor1PWM);
+      }
+      else {
+        Motor1Dir = false;
+        Motor1 = payloadString.toInt();
+        Motor1PWM = payloadString.toInt();
+        digitalWrite(Motor1Direction, LOW);
+        analogWrite(Motor1Speed, Motor1PWM);
+      }
+
     }
   }
   if (String(topic) == "followmecooler/mega/manual/Motor2" && payloadString.toInt() >= -230 && 230 >= payloadString.toInt() && manual == true) {
     if (payloadString.toInt() <= -15 || 15 <= payloadString.toInt() || 0 == payloadString.toInt()) {
       Serial.println("Motor2 " + payloadString);
-      Motor2 = payloadString.toInt();
-      Motor2PWM = payloadString.toInt();
-      analogWrite(Motor2Speed, Motor2PWM);
+
+      if (payloadString.toInt() < 0) {
+        Motor2Dir = true;
+        Motor2 = payloadString.toInt() * -1;
+        Motor2PWM = payloadString.toInt() * -1;
+        digitalWrite(Motor2Direction, HIGH);
+        Serial.println("Backwards");
+        analogWrite(Motor2Speed, Motor2PWM * -1);
+      }
+      else {
+        Motor2Dir = false;
+        Motor2 = payloadString.toInt();
+        Motor2PWM = payloadString.toInt();
+        digitalWrite(Motor2Direction, LOW);
+        analogWrite(Motor2Speed, Motor2PWM);
+      }
+
     }
   }
   if (String(topic) == "followmecooler/mega/manual/Motor" && payloadString.toInt() >= -230 && 230 >= payloadString.toInt() && manual == true) {
     if (payloadString.toInt() <= -15 || 15 <= payloadString.toInt() || 0 == payloadString.toInt()) {
       Serial.println("Motor2 " + payloadString);
-      Motor2 = payloadString.toInt();
-      Motor2PWM = payloadString.toInt();
-      analogWrite(Motor2Speed, Motor2PWM);
+
+      if (payloadString.toInt() < 0) {
+        Motor2Dir = true;
+        Motor2 = payloadString.toInt() * -1;
+        Motor2PWM = payloadString.toInt() * -1;
+        digitalWrite(Motor2Direction, HIGH);
+        analogWrite(Motor2Speed, Motor2PWM);
+      }
+      else {
+        Motor2Dir = false;
+        Motor2 = payloadString.toInt();
+        Motor2PWM = payloadString.toInt();
+        digitalWrite(Motor2Direction, LOW);
+        analogWrite(Motor2Speed, Motor2PWM);
+      }
       Serial.println("Motor1 " + payloadString);
-      Motor1 = payloadString.toInt();
-      Motor1PWM = payloadString.toInt();
-      analogWrite(Motor1Speed, Motor1PWM);
+
+      if (payloadString.toInt() < 0) {
+        Motor1Dir = true;
+        Motor1 = payloadString.toInt()*-1;
+        Motor1PWM = payloadString.toInt()*-1;
+        digitalWrite(Motor1Direction, HIGH);
+        analogWrite(Motor1Speed, Motor1PWM);
+      }
+      else {
+        Motor1Dir = false;
+        Motor1 = payloadString.toInt();
+        Motor1PWM = payloadString.toInt();
+        digitalWrite(Motor1Direction, LOW);
+        analogWrite(Motor1Speed, Motor1PWM);
+      }
 
     }
   }
@@ -148,39 +196,43 @@ void callback(char* topic, byte* payload, unsigned int length) {
       manual = false;
     }
   }
-  if (String(topic) == "followmecooler/jetson/targetdegree" && manual == false && degree!=-1) {
+  if (String(topic) == "followmecooler/jetson/targetdegree" && manual == false && degree != -1) {
     targetdegree = payloadString.toInt();
-    if(targetdegree+3<degree && motorstate == true){
+    if (targetdegree + 3 < degree && motorstate == true) {
       Serial.print("going left ");
       Serial.print(targetdegree);
       Serial.print("/");
       Serial.println(degree);
-      float MotorOffset = degree-targetdegree;
-      if(MotorOffset*1.25 > 50){ MotorOffset=50/1.25; }
-      Motor1 = Motor1Travel-MotorOffset*0.62;
-      Motor2 = Motor2Travel+MotorOffset*1.25;
-      
+      float MotorOffset = degree - targetdegree;
+      if (MotorOffset * 1.25 > 50) {
+        MotorOffset = 50 / 1.25;
+      }
+      Motor1 = Motor1Travel - MotorOffset * 0.62;
+      Motor2 = Motor2Travel + MotorOffset * 1.25;
+
     }
-    if(targetdegree-3>degree && motorstate == true){
+    if (targetdegree - 3 > degree && motorstate == true) {
       Serial.print("going right ");
       Serial.print(targetdegree);
       Serial.print("/");
       Serial.println(degree);
-      float MotorOffset = targetdegree-degree;
-      if(MotorOffset*1.25 > 50){ MotorOffset=50/1.25; }
-      Motor1 = Motor1Travel+MotorOffset*0.62;
-      Motor2 = Motor2Travel-MotorOffset*1.25;
+      float MotorOffset = targetdegree - degree;
+      if (MotorOffset * 1.25 > 50) {
+        MotorOffset = 50 / 1.25;
+      }
+      Motor1 = Motor1Travel + MotorOffset * 0.62;
+      Motor2 = Motor2Travel - MotorOffset * 1.25;
     }
-    if(targetdegree+3>=degree && targetdegree-3<=degree && motorstate == true){
+    if (targetdegree + 3 >= degree && targetdegree - 3 <= degree && motorstate == true) {
       Serial.print("centered ");
       Serial.print(targetdegree);
       Serial.print("/");
       Serial.println(degree);
-      if(Motor1!=Motor1Travel){
+      if (Motor1 != Motor1Travel) {
         analogWrite(Motor1Speed, Motor1Travel);
         Motor1PWM = Motor1Travel;
       }
-      if(Motor2!=Motor2Travel){
+      if (Motor2 != Motor2Travel) {
         analogWrite(Motor2Speed, Motor2Travel);
         Motor2PWM = Motor2Travel;
       }
@@ -191,20 +243,24 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (String(topic) == "followmecooler/jetson/meandist") {
     float meandist = payloadString.toFloat();
-    Motor1Travel = meandist*20;
-    Motor2Travel = meandist*20;
-    if(Motor1Travel>75){ Motor1Travel = 75; }
-    if(Motor2Travel>75){ Motor2Travel = 75; }
+    Motor1Travel = meandist * 20;
+    Motor2Travel = meandist * 20;
+    if (Motor1Travel > 75) {
+      Motor1Travel = 75;
+    }
+    if (Motor2Travel > 75) {
+      Motor2Travel = 75;
+    }
   }
 
-  
+
   if (String(topic) == "followmecooler/cooler/compass") {
     degree = payloadString.toInt();
   }
 
   if (String(topic) == "followmecooler/jetson/motorstate") {
-    if(payloadString.toInt()==0){
-      motorstate=false;
+    if (payloadString.toInt() == 0) {
+      motorstate = false;
       Motor1 = 0;
       Motor2 = 0;
       Motor1PWM = 0;
@@ -212,14 +268,14 @@ void callback(char* topic, byte* payload, unsigned int length) {
       analogWrite(Motor1Speed, 0);
       analogWrite(Motor2Speed, 0);
     }
-   if(payloadString.toInt()==1){
-      motorstate=true;
+    if (payloadString.toInt() == 1) {
+      motorstate = true;
       Motor1 = Motor1Travel;
       Motor2 = Motor2Travel;
       Motor1PWM = Motor1Travel;
       Motor2PWM = Motor2Travel;
       analogWrite(Motor1Speed, Motor1Travel);
-      analogWrite(Motor2Speed, Motor2Travel); 
+      analogWrite(Motor2Speed, Motor2Travel);
     }
   }
 }
@@ -277,7 +333,7 @@ void setup()
   client.setServer(server, 1883);
   client.setCallback(callback);
   Ethernet.init(53);
-  Ethernet.begin(mac, ip);
+  Ethernet.begin(mac);
   delay(1500);
 }
 
@@ -333,7 +389,7 @@ void loop()
       stallcounter++;
       Serial.println("stall");
     }
-    if (Motor1RPM >= 50 && Motor1PWM < 100 && Motor2RPM >= 50 && Motor2PWM < 100 && stallcounter==0) {
+    if (Motor1RPM >= 50 && Motor1PWM < 100 && Motor2RPM >= 50 && Motor2PWM < 100 && stallcounter > 0) {
       stallcounter--;
     }
     if (stallcounter >= 18) {
@@ -355,7 +411,7 @@ void loop()
     Motor1Encoder = 0;
     Motor2Encoder = 0;
 
-    
+
 
 
     if (rpmcounter >= 3) {
@@ -379,145 +435,9 @@ void loop()
     }
   }
 
-  //tft.fillRect(0,65,320,480,BLACK);
-  tft.setTextSize(2);
-  tft.setTextColor(MAGENTA, BLACK);
-  if (Motor1RPM != Motor1vh) {
-    Motor1vh = Motor1RPM;
-    tft.setCursor(0, 154);
-    tft.print("- ");
-    tft.println(Motor1RPM);
-  }
-  if (Motor1Richtung != Motor1Richtungvh) {
-    Motor1Richtungvh = Motor1Richtung;
-    tft.setCursor(0, 174);
-    tft.print("- ");
-    if (Motor1Richtung == false) {
-      tft.print("Forward ");
-    }
-    else {
-      tft.print("Backward");
-    }
-  }
-  if (Motor2 != Motor2vh) {
-    Motor2vh = Motor2;
-    tft.setCursor(0, 240);
-    tft.print("- ");
-    tft.print(Motor2 / 2.55);
-    tft.println("%  ");
-  }
-  if (Motor2Richtung != Motor2Richtungvh) {
-    Motor2Richtungvh = Motor2Richtung;
-    tft.setCursor(0, 260);
-    tft.print("- ");
-    if (Motor2Richtung == false) {
-      tft.print("Forward ");
-    }
-    else {
-      tft.print("Backward");
-    }
-  }
-  /*if (updatestate == true) {
-    updatestate = false;
-    tft.fillRect(310, 470, 320, 480, YELLOW);
-    }
-    else {
-    updatestate = true;
-    tft.fillRect(310, 470, 320, 480, BLACK);
-    }*/
-
-  /*int Ultrasonic1 = getAVGDistance(35, 37);
-    int Ultrasonic2 = getAVGDistance(33, 31);
-    Serial.print("WU1");
-    Serial.println(Ultrasonic1);
-    Serial.print("WU2");
-    Serial.println(Ultrasonic2);*/
-
 
 }
 
-void serialEvent() {
-  while (Serial.available() > 0) {
-    Serial.println("Available");
-    switch (Serial.read()) {
-      case 'W':
-        delay(1);
-        switch (Serial.read()) {
-          case 'M':
-            delay(1);
-            switch (Serial.read()) {
-              case '1':
-                delay(5);
-                Motor1 = (Serial.readStringUntil("\n")).toInt();
-                analogWrite(Motor1Speed, Motor1);
-                //Serial.print("Wrote ");
-                //Serial.print(Motor1);
-                //Serial.println(" to Motor 1");
-                break;
-
-              case '2':
-                delay(5);
-                Motor2 = (Serial.readStringUntil("\n")).toInt();
-                analogWrite(Motor2Speed, Motor2);
-                //Serial.print("Wrote ");
-                //Serial.print(Motor2);
-                //Serial.println(" to Motor 2");
-                break;
-            }
-            break;
-        }
-        break;
-      case 'C':
-        delay(1);
-        switch (Serial.read()) {
-          case 'M':
-            delay(5);
-            switch (Serial.read()) {
-              case '1':
-                delay(5);
-                switch (Serial.read()) {
-
-                  case 'F':
-                    Motor1Richtung = false;
-                    digitalWrite(Motor1Direction, LOW);
-                    //Serial.println("Changed Motor 1 to Forward");
-                    break;
-
-                  case 'B':
-                    Motor1Richtung = true;
-                    digitalWrite(Motor1Direction, HIGH);
-                    //Serial.println("Changed Motor 1 to Backward");
-                    break;
-                }
-                break;
-
-              case '2':
-                delay(5);
-                switch (Serial.read()) {
-                  case 'F':
-                    Motor2Richtung = false;
-                    digitalWrite(Motor2Direction, LOW);
-                    //Serial.println("Changed Motor 2 to Forward");
-                    break;
-
-                  case 'B':
-                    Motor2Richtung = true;
-                    digitalWrite(Motor2Direction, HIGH);
-                    //Serial.println("Changed Motor 2 to Backward");
-                    break;
-                }
-                break;
-            }
-            break;
-        }
-        break;
-      case 'R':
-        Serial.println("Sent: R");
-
-        break;
-    }
-  }
-}
 
 int getDistance(int trigger, int echo) {
   long distance = 0;
